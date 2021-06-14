@@ -1,10 +1,27 @@
-const { getUserDefaultMethod } = require('./token');
+const {
+  getUserDefaultMethod,
+  checkAccessToken,
+  checkPrefix,
+} = require('./token');
 const { pushWeChatMessage } = require('./wechat');
 const { pushWeChatCorpMessage } = require('./wechat-corp');
 const { pushEmailMessage } = require('./email');
+const { pushClientMessage } = require('./client');
 const { Message } = require('../models');
 
 async function processMessage(userPrefix, message) {
+  if (!checkPrefix(userPrefix)) {
+    return {
+      success: false,
+      message: `不存在的前缀：${userPrefix}`,
+    };
+  }
+  if (!checkAccessToken(userPrefix, message.token)) {
+    return {
+      success: false,
+      message: `无效的 access token`,
+    };
+  }
   if (message.email) {
     // If message has the attribute "email", override its type.
     message.type = 'email';
@@ -24,8 +41,11 @@ async function processMessage(userPrefix, message) {
     case 'email': // Email message
       result = await pushEmailMessage(userPrefix, message);
       break;
-    case 'corp': // WeChar corp message
+    case 'corp': // WeChat corp message
       result = await pushWeChatCorpMessage(userPrefix, message);
+      break;
+    case 'client': // Client message
+      result = await pushClientMessage(userPrefix, message);
       break;
     default:
       result = {
