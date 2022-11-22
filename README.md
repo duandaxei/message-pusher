@@ -1,126 +1,145 @@
+<p align="center">
+  <a href="https://github.com/songquanpeng/message-pusher"><img src="https://raw.githubusercontent.com/songquanpeng/message-pusher/master/web/public/logo.png" width="150" height="150" alt="message-pusher logo"></a>
+</p>
+
+<div align="center">
+
 # 消息推送服务
+
+_✨ 搭建专属于你的消息推送服务，支持多种消息推送方式，支持 Markdown，仅单可执行文件，开箱即用✨_
+
+</div>
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/songquanpeng/message-pusher/main/LICENSE">
+    <img src="https://img.shields.io/github/license/songquanpeng/message-pusher?color=brightgreen" alt="license">
+  </a>
+  <a href="https://github.com/songquanpeng/message-pusher/releases/latest">
+    <img src="https://img.shields.io/github/v/release/songquanpeng/message-pusher?color=brightgreen&include_prereleases" alt="release">
+  </a>
+  <a href="https://github.com/songquanpeng/message-pusher/releases/latest">
+    <img src="https://img.shields.io/github/downloads/songquanpeng/message-pusher/total?color=brightgreen&include_prereleases" alt="release">
+  </a>
+  <a href="https://goreportcard.com/report/github.com/songquanpeng/message-pusher">
+    <img src="https://goreportcard.com/badge/github.com/songquanpeng/message-pusher" alt="GoReportCard">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/songquanpeng/message-pusher/releases">程序下载</a>
+  ·
+  <a href="https://github.com/songquanpeng/message-pusher#用法">使用教程</a>
+  ·
+  <a href="https://github.com/songquanpeng/message-pusher/issues">意见反馈</a>
+  ·
+  <a href="https://message-pusher.onrender.com/">在线演示</a>
+</p>
+
+> 注意：Message Pusher 原本基于 Node.js 开发，当前版本为 Golang 重构版本，目前处于预发布阶段，可能不太稳定，如果需要稳定版请使用[旧版本](https://github.com/songquanpeng/message-pusher/releases/tag/v0.2.3)。
+
 ## 描述
 1. 多种消息推送方式：
-    + 使用微信公众号测试号推送，
-    + 使用微信企业号推送，
-    + 使用邮箱进行推送，
-    + 使用专门的桌面客户端进行推送，消息直达你的电脑，需要额外安装一个非常小的客户端，[详见此处](./client/README.md)。
-2. 支持 Markdown。
-3. 支持部署在 Heroku 上，无需自己的服务器，[详见此处](#在-Heroku-上的搭建步骤)。
-4. Docker 一键部署：`docker run -d -p 3000:3000 justsong/message-pusher`
+   + 邮件消息，
+   + 微信测试号，
+   + 企业微信，
+   + 飞书群机器人，
+   + 钉钉群机器人，
+   + 桌面客户端（WIP）
+   + Bark（WIP）
+2. 多种用户登录注册方式：
+   + 邮箱登录注册以及通过邮箱进行密码重置。
+   + [GitHub 开放授权](https://github.com/settings/applications/new)。
+   + 微信公众号授权（需要额外部署 [WeChat Server](https://github.com/songquanpeng/wechat-server)）。
+3. 支持 Markdown。
+4. 支持用户管理。
+5. Cloudflare Turnstile 用户校验。
+6. 支持在线发布公告，设置关于界面以及页脚。
 
-## 用途举例
+## 用途
 1. [整合进自己的博客系统，每当有人登录时发微信消息提醒](https://github.com/songquanpeng/blog/blob/486d63e96ef7906a6c767653a20ec2d3278e9a4a/routes/user.js#L27)。
 2. 在进行深度学习模型训练时，在每个 epoch 结束后[将关键数据发送到微信](https://github.com/songquanpeng/pytorch-template/blob/b2ba113659056080d3009b3014a67e977e2851bf/solver/solver.py#L223)以方便及时监控。
-3. 在各种脚本运行结束后发消息提醒，例如[监控 Github Star 数量的脚本](https://github.com/songquanpeng/scripts/blob/main/star_watcher.py)，又例如[自动健康填报的脚本](https://github.com/songquanpeng/daily-report)，用来通知运行结果。
+3. 在各种脚本运行结束后发消息提醒，例如[监控 GitHub Star 数量的脚本](https://github.com/songquanpeng/scripts/blob/main/star_watcher.py)，又例如[自动健康填报的脚本](https://github.com/songquanpeng/daily-report)，用来通知运行结果。
+4. 为[其他系统](https://github.com/songquanpeng/personal-assistant#个人助理应用)提供消息推送功能。
 
-## 在自己的服务器上的部署步骤
-### 域名设置
-先去你的云服务提供商那里添加一个子域名，解析到你的目标服务器。
+## 部署
+1. 从 [GitHub Releases](https://github.com/songquanpeng/message-pusher/releases/latest) 下载可执行文件或者从源码编译：
+   ```shell
+   git clone https://github.com/songquanpeng/message-pusher.git
+   go mod download
+   go build -ldflags "-s -w" -o message-pusher
+   ````
+2. 运行：
+   ```shell
+   chmod u+x message-pusher
+   ./message-pusher --port 3000 --log-dir ./logs
+   ```
+3. 访问 [http://localhost:3000/](http://localhost:3000/) 并登录。初始账号用户名为 `root`，密码为 `123456`。
 
-### 服务器端配置
-#### 方式一：手动配置环境
-1. 配置 Node.js 环境，推荐使用 [nvm](https://github.com/nvm-sh/nvm)。
-2. 下载代码：`git clone https://github.com/songquanpeng/message-pusher.git`，或者 `git clone https://gitee.com/songquanpeng/message-pusher`。
-3. 修改根目录下的 config.js 文件：
-    + （可选）可以修改监听的端口
-    + （可选）配置是否选择开放注册
-    + （必选）修改 href 字段，如 `https://pusher.yourdomain.com/`，注意后面要加 /，如果不修改此项，推送消息的详情页面将无法打开。
-4. 安装依赖：`npm i`。
-5. 安装 pm2：`npm i -g pm2`。
-6. 使用 pm2 启动服务：`pm2 start ./app.js --name message-pusher`。
-7. 使用 Nginx 反代我们的 Node.js 服务，默认端口 3000（你可以在 config.js 中进行修改）。
-    1. 修改应用根目录下的 `nginx.conf` 中的域名以及端口号，并创建软链接：`sudo ln -s /path/to/nginx.conf /etc/nginx/sites-enabled/message-pusher.conf` ，**注意修改这里的 /path/to/nginx.conf，且必须是绝对路径**，当然如果不想创建软链接的话也可以直接将配置文件拷贝过去：`sudo mv ./nginx.conf /etc/nginx/sites-enabled/message-pusher.conf`。
-    2. 之后使用 [certbot](https://certbot.eff.org/lets-encrypt/ubuntuxenial-nginx) 申请证书：`sudo certbot --nginx`。
-    3. 重启 Nginx 服务：`sudo service nginx restart`。
-8. 默认用户名密码为：`admin` 和 `123456`，且默认禁止新用户注册，如需修改，请编辑 `config.js`。
+如果服务需要长久运行，只是单纯地启动是不够的，[详细部署教程](https://iamazing.cn/page/how-to-deploy-a-website)。
 
-#### 方式二：使用 Docker 进行部署
-1. 执行命令：`docker run -d -p 3000:3000 justsong/message-pusher`
-2. 接上面的第 7 步。
+## 配置
+系统本身仅需要下载一个可执行文件即可开始使用，无其他依赖。
 
-### 微信测试号配置
-1. 首先前往[此页面](https://mp.weixin.qq.com/debug/cgi-bin/sandboxinfo?action=showinfo&t=sandbox/index)拿到 APP_ID 以及 APP_SECRET。
-2. 使用微信扫描下方的测试号二维码，拿到你的 OPEN_ID。
-3. 新增模板消息模板，模板标题随意，模板内容填 `{{text.DATA}}`，提交后可以拿到 TEMPLATE_ID。
-4. 填写接口配置信息，URL 填 `https://你的域名/前缀/verify`，TOKEN 随意，先不要点击验证。（前缀默认和用户名相同）
-5. 现在访问 `https://你的域名/`，默认用户为 admin，默认密码为 123456，登录后根据系统提示完成配置，之后点击提交按钮。
-6. 之后回到微信公众平台测试号的配置页面，点击验证。
+你可以通过设置环境变量或者命令行参数进行配置。
 
-### 微信企业号配置
-1. 在该[页面](https://work.weixin.qq.com/)注册微信企业号（不需要企业资质）。
-2. 在该[页面](https://work.weixin.qq.com/wework_admin/frame#profile)的最下方找到企业 ID。
-3. 在该[页面](https://work.weixin.qq.com/wework_admin/frame#profile/wxPlugin)找到二维码，微信扫码关注。
-4. 在该[页面](https://work.weixin.qq.com/wework_admin/frame#apps)创建一个应用，之后找到应用的 AgentId 和 Secret。
-5. 在该[页面](https://work.weixin.qq.com/wework_admin/frame#contacts)找到你的个人账号（一般为你的姓名拼写）。
+等到系统启动后，使用 `root` 用户登录系统并做进一步的配置。
 
-### 验证是否配置成功
-访问 `https://你的域名/前缀/Hi`，如果你的微信能够收到一条内容为 Hi 的模板消息，则配置成功。
+### 环境变量
+1. `REDIS_CONN_STRING`：设置之后将使用 Redis 作为请求频率限制的存储，而非使用内存存储。
+    + 例子：`REDIS_CONN_STRING=redis://default:redispw@localhost:49153`
+2. `SESSION_SECRET`：设置之后将使用固定的会话密钥，这样系统重新启动后已登录用户的 cookie 将依旧有效。
+    + 例子：`SESSION_SECRET=random_string`
+3. `SQL_DSN`：设置之后将使用指定数据库而非 SQLite。
+    + 例子：`SQL_DSN=root:123456@tcp(localhost:3306)/message-pusher`
 
-如果出现问题，请务必仔细检查所填信息是否正确。
-
-如果出现 `无效的 access token` 的报错，说明你设置了 ACCESS_TOKEN 但是忘记在调用时传递该值或者传递的值是错的。
+### 命令行参数
+1. `--port <port_number>`: 指定服务器监听的端口号，默认为 `3000`。
+    + 例子：`--port 3000`
+2. `--log-dir <log_dir>`: 指定日志文件夹，如果没有设置，日志将不会被保存。
+    + 例子：`--log-dir ./logs`
+3. `--version`: 打印系统版本号并退出。
 
 
-## 在 Heroku 上的搭建步骤
-在此之前，请先读一下“在自己的服务器上的部署步骤”这一节。
-由于 Heroku 的限制，当 30 分钟内没有请求的话就会被冻结，之后再次启动时数据就丢了，因此这里我们采用配置环境变量的方式进行配置，这样即使应用冻结后再次启动配置信息依然存在。
+### 进一步的配置
+1. 系统设置：
+   1. 填写服务器地址。
+   2. 配置登录注册选项，如果系统不对外开发，请取消选择`允许新用户注册`。
+   3. 配置 SMTP 服务，可以使用 QQ 邮箱的 SMTP 服务。
+   4. 其他配置可选，请按照页面上的指示完成配置。
+2. 个人设置：
+   1. 点击`更新用户信息`更改默认用户名和密码。
+   2. 点击`绑定邮箱地址`绑定邮箱以启用邮件消息推送方式。
+3. 推送设置：
+   1. 设置`默认推送方式`，默认为通过邮件进行推送。
+   2. 设置`推送 token`，用以推送 API 调用鉴权，如果不需要留空即可。
+   3. 设置其他推送方式，按照页面上的指示即可，完成配置后点击对应的`测试`按钮即可测试配置是否成功。
+4. 其他设置：如果系统对外提供服务，本系统也提供了一定的个性化设置功能，你可以设置关于界面和页脚，以及发布公告。
 
-### 一键部署
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/songquanpeng/message-pusher)
+## 用法
+1. 消息推送 API URL：`https://<domain>/push/<username>`
+   + 将上面的 `<domain>` 以及 `<username>` 替换为真实值，例如：`https://push.mydomain.cn/admin`
+2. `GET` 请求方式：`https://<domain>/push/<username>?title=<标题>&description=<描述>&content=<Markdown 文本>&channel=<推送方式>&token=<推送 token>`
+   1. `title`：选填，受限于具体的消息推送方式，其可能被忽略。
+   2. `description`：必填，可以替换为 `desp`。
+   3. `content`：选填，受限于具体的消息推送方式，Markdown 语法的支持有所区别。
+   4. `channel`：选填，如果不填则系统使用你在后台设置的默认推送方式。可选的推送方式有：
+      1. `email`：通过发送邮件的方式进行推送。
+      2. `test`：通过微信测试号进行推送。
+      3. `corp`：通过企业微信的应用号进行推送。
+      4. `lark`：通过飞书群机器人进行推送。
+      5. `ding`：通过钉钉群机器人进行推送。
+   5. `token`：如果你在后台设置了推送 token，则此项必填。另外可以通过设置 HTTP `Authorization` 头部设置此项。
+3. `POST` 请求方式：字段与上面 `GET` 请求方式保持一致。
 
-### 手动部署
-1. Fork 本项目。
-2. 在[此处](https://dashboard.heroku.com/new-app)新建一个 Heroku APP，名字随意，之后可以设置自己的域名。
-3. 在 Deployment method 处，选择 Connect to Github，输入 message-pusher 搜索本项目，之后点击 Connect，之后启用自动部署（Enable Automatic Deploys）。 
-4. 点击上方的 Setting 标签，找到下面的 Config Vars 配置环境变量，有以下环境变量需要配置。
-
-|KEY|VALUE|
-|:--|:--|
-|MODE|1（1 代表 Heroku 模式，该模式下应用从环境变量中读取必要信息）|
-|PREFIX|你的前缀，如 admin（前缀用于区分用户，出现在请求的 api 路径中）|
-|DEFAULT_METHOD|默认推送方式（test 代表微信测试号，corp 代表微信企业号，email 代表邮件推送，client 代表客户端推送）|
-|HREF|服务的 href，如 https://wechat-message.herokuapp.com/ ，注意后面要有 /|
-|ACCESS_TOKEN|用于验证调用者身份，防止别人使用借口发送垃圾信息，置空则不进行检查，设置该值后则需要在调用时加上 token 字段|
-|WECHAT_APP_ID|你的测试号的 APP ID|
-|WECHAT_APP_SECRET|你的测试号的 APP Secret|
-|WECHAT_TEMPLATE_ID|你的测试号的模板消息的 ID|
-|WECHAT_OPEN_ID|你的 Open ID|
-|WECHAT_VERIFY_TOKEN|你自己设置的验证 token|
-|EMAIL|你的默认目标邮箱|
-|SMTP_SERVER|smtp 服务器地址，如 smtp.qq.com|
-|SMTP_USER|smtp 服务器用户邮箱|
-|SMTP_PASS|smtp 服务器用户凭据|
-|CORP_ID|微信企业号 ID|
-|CORP_AGENT_ID|微信企业号应用 ID|
-|CORP_APP_SECRET|微信企业号应用 Secret|
-|CORP_USER_ID|微信企业号用户 ID|
-
-## 发送消息的方式
-1. 发送纯文本消息：直接 HTTP GET 请求 `https://你的域名/你的前缀/消息`，缺点是有字数限制，且只能是纯文本，这是微信消息的限制。
-2. 发送 Markdown 消息，调用方式分为两种：
-    + GET 请求方式：`https://你的域名/前缀/?&title=消息标题&description=简短的消息描述&content=markdown格式的消息内容&email=test@qq.com&token=private`
-    + POST 请求方式：请求路径为 `https://你的域名/前缀/`，参数有：
-        1. `type`：（可选）发送方式
-            + `test`：通过微信公众号测试号推送
-            + `email`：通过发送邮件的方式进行推送
-            + `corp`：通过微信企业号的应用号推送
-            + `client`：通过桌面客户端推送
-        2. `title`：（可选）消息的标题
-        3. `description`：（必填）消息的描述
-        4. `content`：（可选）消息内容，支持 Markdown
-        5. `email`：（可选）当该项不为空时，将强制覆盖 type 参数，强制消息类型为邮件消息，收件邮箱即此处指定的邮箱。如果 type 为 `email` 且 email 参数为空，则邮件将发送至用户设置的默认邮箱。
-        6. `token`:（可选）如果你设置了 ACCESS_TOKEN，则你需要附上该参数以验证身份。
-
-## 示例程序
+**示例：**
 ```python
 import requests
 
 # GET 方式
-res = requests.get("https://push.iamazing.cn/admin/?title={}&description={}&token={}".format("标题", "描述", "666"))
+res = requests.get("https://your.domain.com/push/username?title={}&description={}&token={}".format("标题", "描述", "666"))
 
 # POST 方式
-res = requests.post("https://your.domain.com/prefix/", data={
+res = requests.post("https://your.domain.com/push/username", data={
     "title": "标题",
     "description" : "描述",
     "content": "**Markdown 内容**",
@@ -131,14 +150,6 @@ print(res.text)
 # 输出为：{"success":true,"message":"ok"}
 ```
 
-## 待做清单
-- [x] 支持多用户。
-- [ ] 完善的用户管理。
-- [x] 支持 Markdown。
-- [x] 支持推送消息到邮箱。
-- [x] 支持在 Heroku 上部署。
-- [x] 更加便于部署的 [Go 语言版本](https://github.com/LeeJiangWei/go-message)。
-- [x] 适配企业微信应用。
-- [x] 客户端推送。
-
-敬请期待。
+## 其他
+1. `v0.3` 之前的版本基于 Node.js，你可以切换到 [`nodejs`](https://github.com/songquanpeng/message-pusher/tree/nodejs) 分支查看，该版本不再有功能性更新。
+2. `v0.3` 以及后续版本基于 Gin Template [`v0.2.1`](https://github.com/songquanpeng/gin-template) 版本开发。
