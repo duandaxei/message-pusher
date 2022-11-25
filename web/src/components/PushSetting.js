@@ -19,12 +19,12 @@ const PushSetting = () => {
     wechat_test_account_secret: '',
     wechat_test_account_template_id: '',
     wechat_test_account_open_id: '',
-    wechat_test_account_verification_token: '',
     wechat_corp_account_id: '',
     wechat_corp_account_agent_secret: '',
     wechat_corp_account_agent_id: '',
     wechat_corp_account_user_id: '',
     wechat_corp_account_client_type: '',
+    corp_webhook_url: '',
     lark_webhook_url: '',
     lark_webhook_secret: '',
     ding_webhook_url: '',
@@ -81,10 +81,8 @@ const PushSetting = () => {
         data.wechat_test_account_template_id =
           inputs.wechat_test_account_template_id;
         data.wechat_test_account_open_id = inputs.wechat_test_account_open_id;
-        data.wechat_test_account_verification_token =
-          inputs.wechat_test_account_verification_token;
         break;
-      case 'corp':
+      case 'corp_app':
         data.wechat_corp_account_id = inputs.wechat_corp_account_id;
         data.wechat_corp_account_agent_secret =
           inputs.wechat_corp_account_agent_secret;
@@ -92,6 +90,9 @@ const PushSetting = () => {
         data.wechat_corp_account_user_id = inputs.wechat_corp_account_user_id;
         data.wechat_corp_account_client_type =
           inputs.wechat_corp_account_client_type;
+        break;
+      case 'corp':
+        data.corp_webhook_url = inputs.corp_webhook_url;
         break;
       case 'lark':
         data.lark_webhook_url = inputs.lark_webhook_url;
@@ -135,7 +136,9 @@ const PushSetting = () => {
       <Grid.Column>
         <Form loading={loading}>
           <Header as='h3'>通用设置</Header>
-          <Message>注意：密钥类配置信息不会发送到前端显示。</Message>
+          <Message>
+            注意：密钥类配置信息不会发送到前端显示。另外浏览器可能会错误填充账户和密钥信息，请留意。
+          </Message>
           <Form.Group widths={3}>
             <Form.Select
               label='默认推送方式'
@@ -143,10 +146,11 @@ const PushSetting = () => {
               options={[
                 { key: 'email', text: '邮件', value: 'email' },
                 { key: 'test', text: '微信测试号', value: 'test' },
-                { key: 'corp', text: '企业微信', value: 'corp' },
+                { key: 'corp_app', text: '企业微信应用号', value: 'corp_app' },
+                { key: 'corp', text: '企业微信群机器人', value: 'corp' },
                 { key: 'lark', text: '飞书群机器人', value: 'lark' },
                 { key: 'ding', text: '钉钉群机器人', value: 'ding' },
-                { key: 'bark', text: 'Bark', value: 'bark' },
+                { key: 'bark', text: 'Bark App', value: 'bark' },
               ]}
               value={inputs.channel}
               onChange={handleInputChange}
@@ -186,10 +190,8 @@ const PushSetting = () => {
             </Header.Subheader>
           </Header>
           <Message>
-            接口配置信息中的 URL 填写：
-            <code>{`${window.location.origin}/api/wechat_test_account_verification/${inputs.username}`}</code>
-            <br />
-            Token 填一个随机字符串，然后填入下方的「接口配置验证 Token」中。
+            需要新增测试模板，模板标题推荐填写为「消息推送」，模板内容必须填写为
+            {' {{'}text.DATA{'}}'}。
           </Message>
           <Form.Group widths={3}>
             <Form.Input
@@ -225,16 +227,7 @@ const PushSetting = () => {
               onChange={handleInputChange}
               autoComplete='off'
               value={inputs.wechat_test_account_open_id}
-              placeholder='测试号二维码 -> 用户列表 -> 微信号'
-            />
-            <Form.Input
-              label='接口配置验证 Token'
-              name='wechat_test_account_verification_token'
-              onChange={handleInputChange}
-              autoComplete='off'
-              type='password'
-              value={inputs.wechat_test_account_verification_token}
-              placeholder='接口配置信息 -> Token'
+              placeholder='扫描测试号二维码 -> 用户列表 -> 微信号'
             />
           </Form.Group>
           <Button onClick={() => submit('test')} loading={loading}>
@@ -243,9 +236,9 @@ const PushSetting = () => {
           <Button onClick={() => test('test')}>测试</Button>
           <Divider />
           <Header as='h3'>
-            企业微信设置（corp）
+            企业微信应用号设置（corp_app）
             <Header.Subheader>
-              通过企业微信进行推送，点击前往配置：
+              通过企业微信应用号进行推送，点击前往配置：
               <a
                 target='_blank'
                 href='https://work.weixin.qq.com/wework_admin/frame#apps'
@@ -254,6 +247,15 @@ const PushSetting = () => {
               </a>
             </Header.Subheader>
           </Header>
+          <Message>
+            注意，企业微信要求配置可信 IP，步骤：应用管理 -> 自建 -> 创建应用 ->
+            应用设置页面下拉中找到「企业可信 IP」，点击配置 -> 设置可信域名 ->
+            在「可调用
+            JS-SDK、跳转小程序的可信域名」下面填写一个域名，然后点击「申请校验域名」，根据提示完成校验
+            -> 之后填写服务器 IP 地址（此 IP
+            地址是消息推送服务所部署在的服务器的 IP
+            地址，未必是上面校验域名中记录的 IP 地址）。
+          </Message>
           <Form.Group widths={3}>
             <Form.Input
               label='企业 ID'
@@ -305,16 +307,39 @@ const PushSetting = () => {
               onChange={handleInputChange}
             />
           </Form.Group>
+          <Button onClick={() => submit('corp_app')} loading={loading}>
+            保存
+          </Button>
+          <Button onClick={() => test('corp_app')}>测试</Button>
+          <Divider />
+          <Header as='h3'>
+            企业微信群机器人设置（corp）
+            <Header.Subheader>
+              通过企业微信群机器人进行推送，配置流程：选择一个群聊 -> 设置 ->
+              群机器人 -> 添加 -> 新建 -> 输入名字，点击添加 -> 点击复制 Webhook
+              地址
+            </Header.Subheader>
+          </Header>
+          <Form.Group widths={2}>
+            <Form.Input
+              label='Webhook 地址'
+              name='corp_webhook_url'
+              onChange={handleInputChange}
+              autoComplete='off'
+              value={inputs.corp_webhook_url}
+              placeholder='在此填写企业微信提供的 Webhook 地址'
+            />
+          </Form.Group>
           <Button onClick={() => submit('corp')} loading={loading}>
             保存
           </Button>
           <Button onClick={() => test('corp')}>测试</Button>
           <Divider />
           <Header as='h3'>
-            飞书设置（lark）
+            飞书群机器人设置（lark）
             <Header.Subheader>
-              通过飞书群机器人进行推送，选择一个群聊 -> 设置 -> 群机器人 ->
-              添加机器人 -> 自定义机器人 -> 添加（
+              通过飞书群机器人进行推送，飞书桌面客户端的配置流程：选择一个群聊
+              -> 设置 -> 群机器人 -> 添加机器人 -> 自定义机器人 -> 添加（
               <strong>注意选中「签名校验」</strong>）。具体参见：
               <a
                 target='_blank'
@@ -349,10 +374,11 @@ const PushSetting = () => {
           <Button onClick={() => test('lark')}>测试</Button>
           <Divider />
           <Header as='h3'>
-            钉钉设置（ding）
+            钉钉群机器人设置（ding）
             <Header.Subheader>
-              通过钉钉机器人进行推送，选择一个群聊 -> 群设置 -> 智能群助手 ->
-              添加机器人（点击右侧齿轮图标） -> 自定义 -> 添加（
+              通过钉钉群机器人进行推送，钉钉桌面客户端的配置流程：选择一个群聊
+              -> 群设置 -> 智能群助手 -> 添加机器人（点击右侧齿轮图标） ->
+              自定义 -> 添加（
               <strong>注意选中「加密」</strong>）。具体参见：
               <a
                 target='_blank'
@@ -389,12 +415,14 @@ const PushSetting = () => {
           <Header as='h3'>
             Bark 设置（bark）
             <Header.Subheader>
-              通过 Bark 进行推送，下载 Bark 后按提示注册设备即可。
+              通过 Bark 进行推送，下载 Bark 后按提示注册设备，之后会看到一个
+              URL，例如 <code>https://api.day.app/wrsVSDRANDOM/Body Text</code>
+              ，其中 <code>wrsVSDRANDOM</code> 就是你的推送 key。
             </Header.Subheader>
           </Header>
           <Form.Group widths={2}>
             <Form.Input
-              label='Bark 地址服务器地址'
+              label='服务器地址'
               name='bark_server'
               onChange={handleInputChange}
               autoComplete='off'
@@ -402,7 +430,7 @@ const PushSetting = () => {
               placeholder='在此填写 Bark 服务器地址'
             />
             <Form.Input
-              label='签名校验密钥'
+              label='推送 key'
               name='bark_secret'
               type='password'
               onChange={handleInputChange}
