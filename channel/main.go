@@ -14,11 +14,13 @@ const (
 	TypeDing              = "ding"
 	TypeTelegram          = "telegram"
 	TypeBark              = "bark"
+	TypeClient            = "client"
 )
 
 type Message struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Desp        string `json:"desp"` // alias for description
 	Content     string `json:"content"`
 	URL         string `json:"url"`
 	Channel     string `json:"channel"`
@@ -42,6 +44,8 @@ func (message *Message) Send(user *model.User) error {
 		return SendDingMessage(message, user)
 	case TypeBark:
 		return SendBarkMessage(message, user)
+	case TypeClient:
+		return SendClientMessage(message, user)
 	default:
 		return errors.New("不支持的消息通道：" + message.Channel)
 	}
