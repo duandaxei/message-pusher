@@ -37,7 +37,7 @@ _✨ 搭建专属于你的消息推送服务，支持多种消息推送方式，
   <a href="https://message-pusher.onrender.com/">在线演示</a>
 </p>
 
-> 注意：Message Pusher 原本基于 Node.js 开发，当前版本为 Golang 重构版本，目前处于预发布阶段，可能不太稳定，如果需要稳定版请使用[旧版本](https://github.com/songquanpeng/message-pusher/releases/tag/v0.2.3)。
+> 注意：Message Pusher 原本基于 Node.js 开发，当前版本为 Golang 重构版本，目前处于预发布阶段，可能不太稳定，如果需要稳定版请使用[旧版本](https://github.com/songquanpeng/message-pusher/tree/nodejs)。
 
 > 公告：官方部署站 https://msgpusher.com 现已上线，当前开放注册，欢迎使用。如果收到积极反馈未来可以考虑换用延迟更低的服务器。
 
@@ -50,7 +50,7 @@ _✨ 搭建专属于你的消息推送服务，支持多种消息推送方式，
    + 飞书群机器人，
    + 钉钉群机器人，
    + Bark App,
-   + [桌面客户端](https://github.com/songquanpeng/personal-assistant)（WIP）
+   + WebSocket 客户端（[官方客户端](https://github.com/songquanpeng/personal-assistant)，[接入文档](./docs/API.md#websocket-客户端)），
 2. 多种用户登录注册方式：
    + 邮箱登录注册以及通过邮箱进行密码重置。
    + [GitHub 开放授权](https://github.com/settings/applications/new)。
@@ -97,7 +97,7 @@ _✨ 搭建专属于你的消息推送服务，支持多种消息推送方式，
 
 你可以通过设置环境变量或者命令行参数进行配置。
 
-等到系统启动后，使用 `root` 用户登录系统并做进一步的配置。
+等到系统启动后，使用 `root` 用户登录系统并做进一步的配置，默认密码为 `123456`。
 
 ### 环境变量
 1. `REDIS_CONN_STRING`：设置之后将使用 Redis 作为请求频率限制的存储，而非使用内存存储。
@@ -107,8 +107,9 @@ _✨ 搭建专属于你的消息推送服务，支持多种消息推送方式，
 3. `SQL_DSN`：设置之后将使用指定数据库而非 SQLite。
     + 例子：`SQL_DSN=root:123456@tcp(localhost:3306)/message-pusher`
 
-注意：使用 Docker 部署时，请使用 `-e key=value` 设置环境变量。
-   + 例子：`docker run -e SESSION_SECRET=random_string ...`
+注意：使用 Docker 部署时，请使用 `-e key=value` 设置环境变量。 
+
+例子：`docker run -e SESSION_SECRET=random_string ...`
 
 ### 命令行参数
 1. `--port <port_number>`: 指定服务器监听的端口号，默认为 `3000`。
@@ -148,6 +149,7 @@ _✨ 搭建专属于你的消息推送服务，支持多种消息推送方式，
       5. `lark`：通过飞书群机器人进行推送。
       6. `ding`：通过钉钉群机器人进行推送。
       7. `bark`：通过 Bark 进行推送。
+      8. `client`：通过 WebSocket 客户端进行推送。
    5. `token`：如果你在后台设置了推送 token，则此项必填。另外可以通过设置 HTTP `Authorization` 头部设置此项。
 3. `POST` 请求方式：字段与上面 `GET` 请求方式保持一致。
    + 注意：请求体编码格式为 `application/json`。
