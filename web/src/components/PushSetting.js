@@ -8,6 +8,7 @@ import {
   Message,
 } from 'semantic-ui-react';
 import { API, removeTrailingSlash, showError, showSuccess } from '../helpers';
+import axios from 'axios';
 
 const PushSetting = () => {
   let [inputs, setInputs] = useState({
@@ -32,6 +33,8 @@ const PushSetting = () => {
     bark_server: '',
     bark_secret: '',
     client_secret: '',
+    telegram_bot_token: '',
+    telegram_chat_id: '',
   });
   let [loading, setLoading] = useState(false);
 
@@ -110,6 +113,10 @@ const PushSetting = () => {
       case 'client':
         data.client_secret = inputs.client_secret;
         break;
+      case 'telegram':
+        data.telegram_bot_token = inputs.telegram_bot_token;
+        data.telegram_chat_id = inputs.telegram_chat_id;
+        break;
       default:
         showError(`无效的参数：${which}`);
         return;
@@ -135,6 +142,30 @@ const PushSetting = () => {
     }
   };
 
+  const getTelegramChatId = async () => {
+    if (inputs.telegram_bot_token === '') {
+      showError('请先输入 Telegram 机器人令牌！');
+      return;
+    }
+    let res = await axios.get(
+      `https://api.telegram.org/bot${inputs.telegram_bot_token}/getUpdates`
+    );
+    const { ok } = res.data;
+    if (ok) {
+      let result = res.data.result;
+      if (result.length === 0) {
+        showError(`请先向你的机器人发送一条任意消息！`);
+      } else {
+        let id = result[0]?.message?.chat?.id;
+        id = id.toString();
+        setInputs((inputs) => ({ ...inputs, telegram_chat_id: id }));
+        showSuccess('会话 ID 获取成功，请点击保存按钮保存！');
+      }
+    } else {
+      showError(`发生错误：${res.description}`);
+    }
+  };
+
   return (
     <Grid columns={1}>
       <Grid.Column>
@@ -156,6 +187,7 @@ const PushSetting = () => {
                 { key: 'ding', text: '钉钉群机器人', value: 'ding' },
                 { key: 'bark', text: 'Bark App', value: 'bark' },
                 { key: 'client', text: 'WebSocket 客户端', value: 'client' },
+                { key: 'telegram', text: 'Telegram 机器人', value: 'telegram' },
               ]}
               value={inputs.channel}
               onChange={handleInputChange}
@@ -478,6 +510,47 @@ const PushSetting = () => {
             保存
           </Button>
           <Button onClick={() => test('client')}>测试</Button>
+          <Divider />
+          <Header as='h3'>
+            Telegram 机器人设置（telegram）
+            <Header.Subheader>
+              通过 Telegram 机器人进行消息推送。首先向
+              <a href='https://t.me/botfather' target='_blank'>
+                {' '}
+                Bot Father{' '}
+              </a>
+              申请创建一个新的机器人，之后在下方输入获取到的令牌，然后点击你的机器人，随便发送一条消息，之后点击下方的「获取会话
+              ID」按钮，系统将自动为你填写会话
+              ID，最后点击保存按钮保存设置即可。
+            </Header.Subheader>
+          </Header>
+          <Form.Group widths={2}>
+            <Form.Input
+              label='Telegram 机器人令牌'
+              name='telegram_bot_token'
+              type='password'
+              onChange={handleInputChange}
+              autoComplete='off'
+              value={inputs.telegram_bot_token}
+              placeholder='在此设置 Telegram 机器人令牌'
+            />
+            <Form.Input
+              label='Telegram 会话 ID'
+              name='telegram_chat_id'
+              type='text'
+              onChange={handleInputChange}
+              autoComplete='off'
+              value={inputs.telegram_chat_id}
+              placeholder='在此设置 Telegram 会话 ID'
+            />
+          </Form.Group>
+          <Button onClick={getTelegramChatId} loading={loading}>
+            获取会话 ID
+          </Button>
+          <Button onClick={() => submit('telegram')} loading={loading}>
+            保存
+          </Button>
+          <Button onClick={() => test('telegram')}>测试</Button>
         </Form>
       </Grid.Column>
     </Grid>
