@@ -162,26 +162,175 @@ proxy_send_timeout 300s;
       9. `telegram`：通过 Telegram 机器人进行推送（`description` 或 `content` 字段均可，支持 Markdown 的子集）。
    5. `token`：如果你在后台设置了推送 token，则此项必填。另外可以通过设置 HTTP `Authorization` 头部设置此项。
 3. `POST` 请求方式：字段与上面 `GET` 请求方式保持一致。
-   + 注意：请求体编码格式为 `application/json`。
+   + 注意：请求体编码格式为 `application/json`，`v0.3.2` 版本起支持 Post Form。
 
 **示例：**
+
+<details>
+<summary><strong>Bash 示例 </strong></summary>
+<div>
+
+```shell
+#!/bin/bash
+
+MESSAGE_PUSHER_SERVER="https://msgpusher.com"
+MESSAGE_PUSHER_USERNAME="test"
+MESSAGE_PUSHER_TOKEN="666"
+
+function send_message {
+  # POST Form
+  curl -s -X POST "$MESSAGE_PUSHER_SERVER/push/$MESSAGE_PUSHER_USERNAME" \
+    -d "title=$1&description=$2&content=$3&token=$MESSAGE_PUSHER_TOKEN" \
+    >/dev/null
+}
+
+function send_message_with_json {
+  # POST JSON
+  curl -s -X POST "$MESSAGE_PUSHER_SERVER/push/$MESSAGE_PUSHER_USERNAME" \
+    -H 'Content-Type: application/json' \
+    -d '{"title":"'"$1"'","desp":"'"$2"'", "content":"'"$3"'", "token":"'"$MESSAGE_PUSHER_TOKEN"'"}' \
+    >/dev/null
+}
+
+send_message 'title' 'description' 'content'
+```
+
+</div>
+</details>
+
+<details>
+<summary><strong>Python 示例 </strong></summary>
+<div>
+
 ```python
 import requests
 
-# GET 方式
-res = requests.get("https://your.domain.com/push/username?title={}&description={}&token={}".format("标题", "描述", "666"))
+SERVER = "https://msgpusher.com"
+USERNAME = "test"
+TOKEN = "666"
 
-# POST 方式
-res = requests.post("https://your.domain.com/push/username", json={
-    "title": "标题",
-    "description": "描述",
-    "content": "**Markdown 内容**",
-    "token": "6666"
-})
 
-print(res.text)
-# 输出为：{"success":true,"message":"ok"}
+def send_message(title, description, content):
+    # GET 方式
+    # res = requests.get(f"{SERVER}/push/{USERNAME}?title={title}"
+    #                    f"&description={description}&content={content}&token={TOKEN}")
+
+    # POST 方式
+    res = requests.post(f"{SERVER}/push/{USERNAME}", json={
+        "title": title,
+        "description": description,
+        "content": content,
+        "token": TOKEN
+    })
+    res = res.json()
+    if res["success"]:
+        return None
+    else:
+        return res["message"]
+
+
+error = send_message("标题", "描述", "**Markdown 内容**")
+if error:
+    print(error)
 ```
+
+</div>
+</details>
+
+<details>
+<summary><strong>Go 示例 </strong></summary>
+<div>
+
+```go
+package main
+
+import (
+   "bytes"
+   "encoding/json"
+   "errors"
+   "fmt"
+   "net/http"
+   "net/url"
+)
+
+var serverAddress = "https://msgpusher.com"
+var username = "test"
+var token = "666"
+
+type request struct {
+   Title       string `json:"title"`
+   Description string `json:"description"`
+   Content     string `json:"content"`
+   URL         string `json:"url"`
+   Channel     string `json:"channel"`
+   Token       string `json:"token"`
+}
+
+type response struct {
+   Success bool   `json:"success"`
+   Message string `json:"message"`
+}
+
+func SendMessage(title string, description string, content string) error {
+   req := request{
+      Title:       title,
+      Description: description,
+      Content:     content,
+      Token:       token,
+   }
+   data, err := json.Marshal(req)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Post(fmt.Sprintf("%s/push/%s", serverAddress, username),
+      "application/json", bytes.NewBuffer(data))
+   if err != nil {
+      return err
+   }
+   var res response
+   err = json.NewDecoder(resp.Body).Decode(&res)
+   if err != nil {
+      return err
+   }
+   if !res.Success {
+      return errors.New(res.Message)
+   }
+   return nil
+}
+
+func SendMessageWithForm(title string, description string, content string) error {
+   resp, err := http.PostForm(fmt.Sprintf("%s/push/%s", serverAddress, username),
+      url.Values{"title": {title}, "description": {description}, "content": {content}, "token": {token}})
+   if err != nil {
+      return err
+   }
+   var res response
+   err = json.NewDecoder(resp.Body).Decode(&res)
+   if err != nil {
+      return err
+   }
+   if !res.Success {
+      return errors.New(res.Message)
+   }
+   return nil
+}
+
+func main() {
+   //err := SendMessage("标题", "描述", "**Markdown 内容**")
+   err := SendMessageWithForm("标题", "描述", "**Markdown 内容**")
+   if err != nil {
+      fmt.Println("推送失败：" + err.Error())
+   } else {
+      fmt.Println("推送成功！")
+   }
+}
+```
+
+</div>
+</details>
+
+欢迎 PR 添加更多语言的示例。
+
 
 ## 其他
 1. `v0.3` 之前的版本基于 Node.js，你可以切换到 [`nodejs`](https://github.com/songquanpeng/message-pusher/tree/nodejs) 分支查看，该版本不再有功能性更新。
