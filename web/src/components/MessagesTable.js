@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Form, Label, Modal, Pagination, Table } from 'semantic-ui-react';
-import { API, openPage, showError, showSuccess } from '../helpers';
+import { API, openPage, showError, showSuccess, showWarning, timestamp2string } from '../helpers';
 
 import { ITEMS_PER_PAGE } from '../constants';
 
@@ -70,11 +70,9 @@ function renderChannel(channel) {
 }
 
 function renderTimestamp(timestamp) {
-  const date = new Date(timestamp * 1000);
   return (
     <>
-      {date.getFullYear()}-{date.getMonth() + 1}-{date.getDate()}{' '}
-      {date.getHours()}:{date.getMinutes()}:{date.getSeconds()}
+      {timestamp2string(timestamp)}
     </>
   );
 }
@@ -111,6 +109,9 @@ function renderStatus(status) {
 const MessagesTable = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(10);
+  const autoRefreshSecondsRef = useRef(autoRefreshSeconds);
   const [activePage, setActivePage] = useState(1);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searching, setSearching] = useState(false);
@@ -118,11 +119,12 @@ const MessagesTable = () => {
     title: '消息标题',
     description: '消息描述',
     content: '消息内容',
-    link: '',
+    link: ''
   });  // Message to be viewed
   const [viewModalOpen, setViewModalOpen] = useState(false);
 
   const loadMessages = async (startIdx) => {
+    setLoading(true);
     const res = await API.get(`/api/message/?p=${startIdx}`);
     const { success, message, data } = res.data;
     if (success) {
@@ -149,14 +151,36 @@ const MessagesTable = () => {
     })();
   };
 
+  const checkPermission = async () => {
+    // Check global permission
+    let res = await API.get('/api/status');
+    const { success, data } = res.data;
+    if (success) {
+      if (data.message_persistence) {
+        return;
+      }
+    }
+    // Check user permission
+    {
+      let res = await API.get('/api/user/self');
+      const { success, message, data } = res.data;
+      if (success) {
+        if (data.save_message_to_database !== 1) {
+          showWarning('您没有消息持久化的权限，消息未保存，请联系管理员。');
+        }
+      } else {
+        showError(message);
+      }
+    }
+  };
+
   useEffect(() => {
-    // TODO: Prompt the user if message persistence is disabled
-    // TODO: Allow set persistence permission for each user
     loadMessages(0)
       .then()
       .catch((reason) => {
         showError(reason);
       });
+    checkPermission().then();
   }, []);
 
   const viewMessage = async (id) => {
@@ -173,8 +197,15 @@ const MessagesTable = () => {
   };
 
   const resendMessage = async (id) => {
-    // TODO: Implement resendMessage
-    console.log('resendMessage', id);
+    setLoading(true);
+    const res = await API.post(`/api/message/resend/${id}`);
+    const { success, message } = res.data;
+    if (success) {
+      showSuccess('消息已重新发送！');
+    } else {
+      showError(message);
+    }
+    setLoading(false);
   };
 
   const deleteMessage = async (id, idx) => {
@@ -229,6 +260,31 @@ const MessagesTable = () => {
     setMessages(sortedMessages);
     setLoading(false);
   };
+
+  const refresh = async () => {
+    await loadMessages(0);
+    setActivePage(1);
+  };
+
+  useEffect(() => {
+    let intervalId;
+
+    if (autoRefresh) {
+      intervalId = setInterval(() => {
+        if (autoRefreshSecondsRef.current === 0) {
+          refresh().then();
+          setAutoRefreshSeconds(10);
+          autoRefreshSecondsRef.current = 10;
+        } else {
+          autoRefreshSecondsRef.current -= 1;
+          setAutoRefreshSeconds(autoRefreshSeconds => autoRefreshSeconds - 1); // Important!
+        }
+      }, 1000);
+    }
+
+    return () => clearInterval(intervalId);
+  }, [autoRefresh]);
+
 
   return (
     <>
@@ -349,6 +405,17 @@ const MessagesTable = () => {
         <Table.Footer>
           <Table.Row>
             <Table.HeaderCell colSpan='6'>
+              <Button size='small' loading={loading} onClick={() => {
+                refresh().then();
+              }}>
+                手动刷新
+              </Button>
+              <Button size='small' loading={loading} onClick={() => {
+                setAutoRefresh(!autoRefresh);
+                setAutoRefreshSeconds(10);
+              }}>
+                {autoRefresh ? `自动刷新中（${autoRefreshSeconds} 秒后刷新）` : '自动刷新'}
+              </Button>
               <Pagination
                 floated='right'
                 activePage={activePage}
@@ -368,16 +435,24 @@ const MessagesTable = () => {
         size='tiny'
         open={viewModalOpen}
       >
-        <Modal.Header>{message.title ? message.title : "无标题"}</Modal.Header>
+        <Modal.Header>{message.title ? message.title : '无标题'}</Modal.Header>
         <Modal.Content>
-          {message.description ? <p className={'quote'}>{message.description}</p> : ""}
-          <p>{message.content ? message.content : "无内容"}</p>
+          {message.description ? <p className={'quote'}>{message.description}</p> : ''}
+          {message.content ? <p>{message.content}</p> : ''}
         </Modal.Content>
         <Modal.Actions>
-          <Button onClick={() => {openPage(`/message/${message.link}`)}}>
+          <Button onClick={() => {
+            if (message.URL) {
+              openPage(message.URL);
+            } else {
+              openPage(`/message/${message.link}`);
+            }
+          }}>
             打开
           </Button>
-          <Button onClick={() => {setViewModalOpen(false)}}>
+          <Button onClick={() => {
+            setViewModalOpen(false);
+          }}>
             关闭
           </Button>
         </Modal.Actions>
