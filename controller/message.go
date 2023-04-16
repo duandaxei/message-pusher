@@ -20,6 +20,7 @@ func GetPushMessage(c *gin.Context) {
 		URL:         c.Query("url"),
 		Channel:     c.Query("channel"),
 		Token:       c.Query("token"),
+		To:          c.Query("to"),
 	}
 	if message.Description == "" {
 		// Keep compatible with ServerChan
@@ -41,6 +42,7 @@ func PostPushMessage(c *gin.Context) {
 		Channel:     c.PostForm("channel"),
 		Token:       c.PostForm("token"),
 		Desp:        c.PostForm("desp"),
+		To:          c.PostForm("to"),
 	}
 	if message == (model.Message{}) {
 		// Looks like the user is using JSON
@@ -132,12 +134,26 @@ func pushMessageHelper(c *gin.Context, message *model.Message) {
 			"success": false,
 			"message": err.Error(),
 		})
+		// Update the status of the message
+		if common.MessagePersistenceEnabled {
+			err := message.UpdateStatus(common.MessageSendStatusFailed)
+			if err != nil {
+				common.SysError("failed to update the status of the message: " + err.Error())
+			}
+		}
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "ok",
 	})
+	// Update the status of the message
+	if common.MessagePersistenceEnabled {
+		err := message.UpdateStatus(common.MessageSendStatusSent)
+		if err != nil {
+			common.SysError("failed to update the status of the message: " + err.Error())
+		}
+	}
 	return
 }
 
@@ -229,6 +245,24 @@ func GetMessage(c *gin.Context) {
 		"success": true,
 		"message": "",
 		"data":    message,
+	})
+	return
+}
+
+func SearchMessages(c *gin.Context) {
+	keyword := c.Query("keyword")
+	messages, err := model.SearchMessages(keyword)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    messages,
 	})
 	return
 }
