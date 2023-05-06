@@ -29,8 +29,9 @@ func (i *WeChatTestAccountTokenStoreItem) Key() string {
 }
 
 func (i *WeChatTestAccountTokenStoreItem) IsShared() bool {
-	return model.DB.Where("wechat_test_account_id = ? and wechat_test_account_secret = ?",
-		i.AppID, i.AppSecret).Find(&model.User{}).RowsAffected != 1
+	var count int64 = 0
+	model.DB.Model(&model.Channel{}).Where("type = ? and app_id = ? and secret = ?", model.TypeWeChatTestAccount, i.AppID, i.AppSecret).Count(&count)
+	return count > 1
 }
 
 func (i *WeChatTestAccountTokenStoreItem) IsFilled() bool {
@@ -88,14 +89,14 @@ type wechatTestMessageResponse struct {
 	ErrorMessage string `json:"errmsg"`
 }
 
-func SendWeChatTestMessage(message *model.Message, user *model.User) error {
-	if user.WeChatTestAccountId == "" {
-		return errors.New("未配置微信测试号消息推送方式")
-	}
+func SendWeChatTestMessage(message *model.Message, user *model.User, channel_ *model.Channel) error {
 	values := wechatTestMessageRequest{
-		ToUser:     user.WeChatTestAccountOpenId,
-		TemplateId: user.WeChatTestAccountTemplateId,
+		ToUser:     channel_.AccountId,
+		TemplateId: channel_.Other,
 		URL:        "",
+	}
+	if message.To != "" {
+		values.ToUser = message.To
 	}
 	values.Data.Text.Value = message.Description
 	values.URL = message.URL
@@ -103,7 +104,7 @@ func SendWeChatTestMessage(message *model.Message, user *model.User) error {
 	if err != nil {
 		return err
 	}
-	key := fmt.Sprintf("%s%s", user.WeChatTestAccountId, user.WeChatTestAccountSecret)
+	key := fmt.Sprintf("%s%s", channel_.AppId, channel_.Secret)
 	accessToken := TokenStoreGetToken(key)
 	resp, err := http.Post(fmt.Sprintf("https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=%s", accessToken), "application/json",
 		bytes.NewBuffer(jsonData))

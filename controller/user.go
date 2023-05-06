@@ -389,45 +389,15 @@ func UpdateSelf(c *gin.Context) {
 		})
 		return
 	}
-	originUser, err := model.GetUserById(c.GetInt("id"), true)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
 	// White list mode. For safe :)
 	cleanUser := model.User{
-		Id:                                 c.GetInt("id"),
-		Username:                           user.Username,
-		Password:                           user.Password,
-		DisplayName:                        user.DisplayName,
-		Token:                              user.Token,
-		Channel:                            user.Channel,
-		WeChatTestAccountId:                user.WeChatTestAccountId,
-		WeChatTestAccountSecret:            user.WeChatTestAccountSecret,
-		WeChatTestAccountTemplateId:        user.WeChatTestAccountTemplateId,
-		WeChatTestAccountOpenId:            user.WeChatTestAccountOpenId,
-		WeChatTestAccountVerificationToken: user.WeChatTestAccountVerificationToken,
-		WeChatCorpAccountId:                user.WeChatCorpAccountId,
-		WeChatCorpAccountAgentSecret:       user.WeChatCorpAccountAgentSecret,
-		WeChatCorpAccountAgentId:           user.WeChatCorpAccountAgentId,
-		WeChatCorpAccountUserId:            user.WeChatCorpAccountUserId,
-		WeChatCorpAccountClientType:        user.WeChatCorpAccountClientType,
-		CorpWebhookURL:                     user.CorpWebhookURL,
-		LarkWebhookURL:                     user.LarkWebhookURL,
-		LarkWebhookSecret:                  user.LarkWebhookSecret,
-		DingWebhookURL:                     user.DingWebhookURL,
-		DingWebhookSecret:                  user.DingWebhookSecret,
-		BarkServer:                         user.BarkServer,
-		BarkSecret:                         user.BarkSecret,
-		ClientSecret:                       user.ClientSecret,
-		TelegramBotToken:                   user.TelegramBotToken,
-		TelegramChatId:                     user.TelegramChatId,
-		DiscordWebhookURL:                  user.DiscordWebhookURL,
+		Id:          c.GetInt("id"),
+		Username:    user.Username,
+		Password:    user.Password,
+		DisplayName: user.DisplayName,
+		Token:       user.Token,
+		Channel:     user.Channel,
 	}
-	channel.TokenStoreUpdateUser(&cleanUser, originUser)
 
 	if user.Password == "$I_LOVE_U" {
 		user.Password = "" // rollback to what it should be
@@ -634,6 +604,7 @@ func ManageUser(c *gin.Context) {
 			})
 			return
 		}
+		channel.TokenStoreRemoveUser(&user)
 	case "promote":
 		if myRole != common.RoleRootUser {
 			c.JSON(http.StatusOK, gin.H{
@@ -729,6 +700,16 @@ func EmailBind(c *gin.Context) {
 		})
 		return
 	}
+	// create email channel for this user
+	emailChannel := model.Channel{
+		Type:        model.TypeEmail,
+		UserId:      user.Id,
+		Name:        "email",
+		Description: "系统自动创建",
+		Status:      common.ChannelStatusEnabled,
+		CreatedTime: common.GetTimestamp(),
+	}
+	_ = emailChannel.Insert()
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
