@@ -51,6 +51,7 @@ _✨ 搭建专属于你的消息推送服务，支持多种消息推送方式，
    + QQ，
    + 企业微信应用号，
    + 企业微信群机器人
+   + 飞书自建应用
    + 飞书群机器人，
    + 钉钉群机器人，
    + Bark App,
@@ -166,16 +167,17 @@ proxy_send_timeout 300s;
       1. `email`：通过发送邮件的方式进行推送（使用 `title` 或 `description` 字段设置邮件主题，使用 `content` 字段设置正文，支持完整的 Markdown 语法）。
       2. `test`：通过微信测试号进行推送（使用 `description` 字段设置模板消息内容，不支持 Markdown）。
       3. `corp_app`：通过企业微信应用号进行推送（仅当使用企业微信 APP 时，如果设置了 `content` 字段，`title` 和 `description` 字段会被忽略；使用微信中的企业微信插件时正常）。
-      4. `corp`：通过企业微信群机器人推送（设置 `content` 字段则将渲染 Markdown 消息，支持 Markdown 的子集；设置 `description` 字段则为普通文本消息）。
-      5. `lark`：通过飞书群机器人进行推送（注意事项同上）。
-      6. `ding`：通过钉钉群机器人进行推送（注意事项同上）。
-      7. `bark`：通过 Bark 进行推送（支持 `title` 和 `description` 字段）。
-      8. `client`：通过 WebSocket 客户端进行推送（支持 `title` 和 `description` 字段）。
-      9. `telegram`：通过 Telegram 机器人进行推送（`description` 或 `content` 字段二选一，支持 Markdown 的子集）。
-      10. `discord`：通过 Discord 群机器人进行推送（注意事项同上）。
-      11. `one_api`：通过 OneAPI 协议推送消息到 QQ。
-      12. `group`：通过预先配置的消息推送通道群组进行推送。
-      13. `none`：仅保存到数据库，不做推送。
+      4. `lark_app`：通过飞书自建应用进行推送。
+      5. `corp`：通过企业微信群机器人推送（设置 `content` 字段则将渲染 Markdown 消息，支持 Markdown 的子集；设置 `description` 字段则为普通文本消息）。
+      6. `lark`：通过飞书群机器人进行推送（注意事项同上）。
+      7. `ding`：通过钉钉群机器人进行推送（注意事项同上）。
+      8. `bark`：通过 Bark 进行推送（支持 `title` 和 `description` 字段）。
+      9. `client`：通过 WebSocket 客户端进行推送（支持 `title` 和 `description` 字段）。
+      10. `telegram`：通过 Telegram 机器人进行推送（`description` 或 `content` 字段二选一，支持 Markdown 的子集）。
+      11. `discord`：通过 Discord 群机器人进行推送（注意事项同上）。
+      12. `one_api`：通过 OneAPI 协议推送消息到 QQ。
+      13. `group`：通过预先配置的消息推送通道群组进行推送。
+      14. `none`：仅保存到数据库，不做推送。
    5. `token`：如果你在后台设置了推送 token，则此项必填。另外可以通过设置 HTTP `Authorization` 头部设置此项。
    6. `url`：选填，如果不填则系统自动为消息生成 URL，其内容为消息详情。
    7. `to`：选填，推送给指定用户，如果不填则默认推送给自己，受限于具体的消息推送方式，有些推送方式不支持此项。
@@ -184,6 +186,27 @@ proxy_send_timeout 300s;
    8. `async`：选填，如果设置为 `true` 则消息推送将在后台异步进行，返回结果包含 `uuid` 字段，可用于后续[获取消息发送状态](./docs/API.md#通过消息 UUID 获取消息发送状态)。
 3. `POST` 请求方式：字段与上面 `GET` 请求方式保持一致。
    + 注意：请求体编码格式为 `application/json`，`v0.3.2` 版本起支持 Post Form。
+
+
+**各种通道的支持程度：**
+
+|    通道类型    | `title` | `description` | `content` | `url` | `to` | Markdown 支持 |
+|:----------:|:-------:|:-------------:|:---------:|:-----:|:----:|:-----------:|
+|  `email`   |    ✅    |       ✅       |     ✅     |   ❌   |  ✅️  |     ✅️      |
+|   `test`   |    ❌    |       ✅       |     ✅     |  ✅️   |  ✅️  |      ✅      |
+| `corp_app` |    ✅    |       ✅       |     ✅     |  ✅️   |  ✅   |      ✅      |
+|   `corp`   |    ❌    |       ✅       |     ✅     |  ✅️   |  ✅️  |      ✅      |
+|   `lark`   |    ❌    |       ✅       |     ✅     |   ❌   |  ✅   |      ✅      |
+| `lark_app` |    ❌    |       ✅       |     ✅     |  ❌️   |  ✅   |      ✅      |
+|   `ding`   |    ✅    |       ✅       |     ✅     |  ✅️   |  ✅   |      ✅      |
+|   `bark`   |    ✅    |       ✅       |     ✅     |  ✅️   |  ❌   |      ✅      |
+|  `client`  |    ✅    |       ✅       |     ❌     |   ❌   |  ❌   |      ❌      |
+| `telegram` |    ❌    |       ❌       |     ✅     |   ❌   |  ✅   |      ✅      |
+| `discord`  |    ❌    |       ❌       |     ✅     |   ❌   |  ✅   |      ❌      |
+
+注意：
+1. 对于大部分通道，`description` 字段和 `content` 是不能同时存在的，如果你只需要文字消息，请使用 `description` 字段，如果你需要发送 Markdown 消息，请使用 `content` 字段。
+2. 部分通道的 Markdown 支持实际上是通过 URL 跳转到本系统所渲染的消息详情实现的，其他通道的 Markdown 支持受限于具体的通道，支持的语法并不统一。
 
 **示例：**
 
