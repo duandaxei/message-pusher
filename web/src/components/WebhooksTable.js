@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Form, Label, Pagination, Table } from 'semantic-ui-react';
+import {
+  Button,
+  Form,
+  Label,
+  Pagination,
+  Popup,
+  Table,
+} from 'semantic-ui-react';
 import { Link } from 'react-router-dom';
 import { API, copy, showError, showSuccess, showWarning } from '../helpers';
 
@@ -223,6 +230,7 @@ const WebhooksTable = () => {
             )
             .map((webhook, idx) => {
               if (webhook.deleted) return <></>;
+              const webhookUrl = `${window.location.origin}/webhook/${webhook.link}`;
               return (
                 <Table.Row key={webhook.id}>
                   <Table.Cell>{webhook.id}</Table.Cell>
@@ -238,34 +246,28 @@ const WebhooksTable = () => {
                   </Table.Cell>
                   <Table.Cell>
                     <div>
+                      <Popup
+                        content={webhookUrl}
+                        hoverable
+                        trigger={
+                          <Button
+                            size={'small'}
+                            positive
+                            onClick={async () => {
+                              if (await copy(webhookUrl)) {
+                                showSuccess('已复制到剪贴板！');
+                              } else {
+                                showWarning('无法复制到剪贴板！');
+                              }
+                            }}
+                          >
+                            复制 Webhook 链接
+                          </Button>
+                        }
+                      />
                       <Button
                         size={'small'}
-                        positive
-                        onClick={async () => {
-                          if (
-                            await copy(
-                              `${window.location.origin}/webhook/${webhook.link}`
-                            )
-                          ) {
-                            showSuccess('已复制到剪贴板！');
-                          } else {
-                            showWarning('无法复制到剪贴板！');
-                          }
-                        }}
-                      >
-                        复制 Webhook 链接
-                      </Button>
-                      <Button
-                        size={'small'}
-                        negative
-                        onClick={() => {
-                          manageWebhook(webhook.id, 'delete', idx).then();
-                        }}
-                      >
-                        删除
-                      </Button>
-                      <Button
-                        size={'small'}
+                        color={'yellow'}
                         onClick={() => {
                           manageWebhook(
                             webhook.id,
@@ -278,11 +280,32 @@ const WebhooksTable = () => {
                       </Button>
                       <Button
                         size={'small'}
+                        primary
                         as={Link}
                         to={'/webhook/edit/' + webhook.id}
                       >
                         编辑
                       </Button>
+                      <Popup
+                        trigger={
+                          <Button size='small' negative>
+                            删除
+                          </Button>
+                        }
+                        on='click'
+                        flowing
+                        hoverable
+                      >
+                        <Button
+                          size={'small'}
+                          negative
+                          onClick={() => {
+                            manageWebhook(webhook.id, 'delete', idx).then();
+                          }}
+                        >
+                          删除 {webhook.name}
+                        </Button>
+                      </Popup>
                     </div>
                   </Table.Cell>
                 </Table.Row>

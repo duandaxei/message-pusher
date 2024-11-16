@@ -240,7 +240,7 @@ func TriggerWebhook(c *gin.Context) {
 	}
 	for key, value := range extractRule {
 		variableValue := gjson.Get(reqText, value).String()
-		webhook.ConstructRule = strings.Replace(webhook.ConstructRule, "$"+key, variableValue, -1)
+		webhook.ConstructRule = common.Replace(webhook.ConstructRule, "$"+key, variableValue, -1)
 	}
 	constructRule := model.WebhookConstructRule{}
 	err = json.Unmarshal([]byte(webhook.ConstructRule), &constructRule)
@@ -258,5 +258,5 @@ func TriggerWebhook(c *gin.Context) {
 		Content:     constructRule.Content,
 		URL:         constructRule.URL,
 	}
-	processMessage(c, message, user)
+	processMessage(c, message, user, false)
 }

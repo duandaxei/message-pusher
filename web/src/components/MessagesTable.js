@@ -1,17 +1,33 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Form, Label, Modal, Pagination, Table } from 'semantic-ui-react';
-import { API, openPage, showError, showSuccess, showWarning } from '../helpers';
+import {
+  Button,
+  Form,
+  Label,
+  Modal,
+  Pagination,
+  Popup,
+  Table,
+} from 'semantic-ui-react';
+import {
+  API,
+  openPage,
+  showError,
+  showInfo,
+  showSuccess,
+  showWarning,
+} from '../helpers';
 
 import { ITEMS_PER_PAGE } from '../constants';
 import { renderTimestamp } from '../helpers/render';
 import { Link } from 'react-router-dom';
+import { marked } from 'marked';
 
 function renderStatus(status) {
   switch (status) {
     case 1:
       return (
         <Label basic color='olive'>
-          正在投递
+          正在发送
         </Label>
       );
     case 2:
@@ -44,7 +60,7 @@ function renderStatus(status) {
 const MessagesTable = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(10);
   const autoRefreshSecondsRef = useRef(autoRefreshSeconds);
   const [activePage, setActivePage] = useState(1);
@@ -54,7 +70,7 @@ const MessagesTable = () => {
     title: '消息标题',
     description: '消息描述',
     content: '消息内容',
-    link: ''
+    link: '',
   }); // Message to be viewed
   const [viewModalOpen, setViewModalOpen] = useState(false);
 
@@ -116,14 +132,21 @@ const MessagesTable = () => {
         showError(reason);
       });
     checkPermission().then();
-    const eventSource = new EventSource('/api/message/stream');
-    eventSource.onerror = (e) => {
-      showError('服务端消息推送流连接出错！');
+    const connectEventSource = () => {
+      const eventSource = new EventSource('/api/message/stream');
+      eventSource.onmessage = (e) => {
+        const newMessage = JSON.parse(e.data);
+        insertNewMessage(newMessage);
+      };
+      eventSource.onerror = () => {
+        showError('服务端消息推送流连接出错！即将重试...');
+        eventSource.close();
+        setTimeout(connectEventSource, 1000); // 1000ms
+      };
+      return eventSource;
     };
-    eventSource.onmessage = (e) => {
-      let newMessage = JSON.parse(e.data);
-      insertNewMessage(newMessage);
-    };
+    const eventSource = connectEventSource();
+    showInfo('服务器消息推送流已连接，您将实时收到新消息');
     return () => {
       eventSource.close();
     };
@@ -209,12 +232,11 @@ const MessagesTable = () => {
 
   const insertNewMessage = (message) => {
     console.log(messages);
-    setMessages(messages => {
-        let newMessages = [message];
-        newMessages.push(...messages);
-        return newMessages;
-      }
-    );
+    setMessages((messages) => {
+      let newMessages = [message];
+      newMessages.push(...messages);
+      return newMessages;
+    });
     setActivePage(1);
   };
 
@@ -352,16 +374,28 @@ const MessagesTable = () => {
                       >
                         重发
                       </Button>
-                      <Button
-                        size={'small'}
-                        negative
-                        loading={loading}
-                        onClick={() => {
-                          deleteMessage(message.id, idx).then();
-                        }}
+
+                      <Popup
+                        trigger={
+                          <Button size='small' negative>
+                            删除
+                          </Button>
+                        }
+                        on='click'
+                        flowing
+                        hoverable
                       >
-                        删除
-                      </Button>
+                        <Button
+                          size={'small'}
+                          negative
+                          loading={loading}
+                          onClick={() => {
+                            deleteMessage(message.id, idx).then();
+                          }}
+                        >
+                          删除消息 #{message.id}
+                        </Button>
+                      </Popup>
                     </div>
                   </Table.Cell>
                 </Table.Row>
@@ -416,7 +450,15 @@ const MessagesTable = () => {
           ) : (
             ''
           )}
-          {message.content ? <p>{message.content}</p> : ''}
+          {message.content ? (
+            <div
+              dangerouslySetInnerHTML={{
+                __html: marked.parse(message.content),
+              }}
+            ></div>
+          ) : (
+            ''
+          )}
         </Modal.Content>
         <Modal.Actions>
           <Button

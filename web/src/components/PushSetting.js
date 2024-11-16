@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Form, Grid, Header, Message } from 'semantic-ui-react';
-import { API, showError, showSuccess, testChannel } from '../helpers';
+import {
+  API,
+  generateToken,
+  showError,
+  showSuccess,
+  testChannel,
+} from '../helpers';
 import { loadUser, loadUserChannels } from '../helpers/loader';
 
 const PushSetting = () => {
@@ -11,7 +17,7 @@ const PushSetting = () => {
     token: '',
   });
   let [channels, setChannels] = useState([]);
-  let [loading, setLoading] = useState(false);
+  let [loading, setLoading] = useState(true);
 
   const handleInputChange = (e, { name, value }) => {
     setUser((inputs) => ({ ...inputs, [name]: value }));
@@ -63,20 +69,32 @@ const PushSetting = () => {
           <Message>
             注意：敏感配置信息不会发送到前端显示。另外浏览器可能会错误填充账户和密钥信息，请留意。
           </Message>
-          <Form.Group widths={3}>
+          <Form.Group>
             <Form.Select
               label='默认推送方式'
               name='channel'
               options={channels}
               value={user.channel}
               onChange={handleInputChange}
+              width={5}
             />
             <Form.Input
-              label='推送 token'
-              placeholder='未设置则不检查 token'
+              label='全局鉴权令牌'
+              placeholder='优先级高于通道维度令牌，但为了安全期间建议使用通道维度的令牌'
               value={user.token}
               name='token'
               onChange={handleInputChange}
+              width={9}
+              action={{
+                content: '随机生成',
+                onClick: () => {
+                  console.log('generate token');
+                  setUser((inputs) => ({
+                    ...inputs,
+                    token: generateToken(16),
+                  }));
+                },
+              }}
             />
           </Form.Group>
           <Button onClick={() => submit('general')} loading={loading}>
